@@ -53,3 +53,5 @@ kaggle.json
 data/
 datasets/
 input/
+
+.gitignore
