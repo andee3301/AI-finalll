@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Melanoma Detection</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .container {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        max-width: 500px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 28px;
+      }
+
+      .subtitle {
+        text-align: center;
+        color: #666;
+        margin-bottom: 30px;
+        font-size: 14px;
+      }
+
+      .upload-area {
+        border: 3px dashed #ddd;
+        border-radius: 15px;
+        padding: 40px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 20px;
+      }
+
+      .upload-area:hover {
+        border-color: #667eea;
+        background: #f8f9ff;
+      }
+
+      .upload-area.dragover {
+        border-color: #667eea;
+        background: #f0f2ff;
+      }
+
+      .upload-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+      }
+
+      .upload-text {
+        color: #666;
+        font-size: 16px;
+      }
+
+      .upload-text span {
+        color: #667eea;
+        font-weight: 600;
+      }
+
+      #fileInput {
+        display: none;
+      }
+
+      #preview {
+        display: none;
+        margin: 20px auto;
+        max-width: 100%;
+        max-height: 300px;
+        border-radius: 10px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .btn {
+        width: 100%;
+        padding: 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .result {
+        display: none;
+        margin-top: 30px;
+        padding: 25px;
+        border-radius: 15px;
+        text-align: center;
+      }
+
+      .result.benign {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        border: 2px solid #28a745;
+      }
+
+      .result.malignant {
+        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        border: 2px solid #dc3545;
+      }
+
+      .result-label {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 5px;
+      }
+
+      .result-prediction {
+        font-size: 32px;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+      }
+
+      .result.benign .result-prediction {
+        color: #28a745;
+      }
+
+      .result.malignant .result-prediction {
+        color: #dc3545;
+      }
+
+      .result-confidence {
+        font-size: 18px;
+        color: #333;
+      }
+
+      .probabilities {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+      }
+
+      .prob-item {
+        display: flex;
+        justify-content: space-between;
+        margin: 10px 0;
+        font-size: 14px;
+      }
+
+      .prob-bar {
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        margin-top: 5px;
+        overflow: hidden;
+      }
+
+      .prob-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s ease;
+      }
+
+      .prob-fill.benign {
+        background: #28a745;
+      }
+
+      .prob-fill.malignant {
+        background: #dc3545;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        margin: 20px 0;
+      }
+
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 10px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .disclaimer {
+        margin-top: 30px;
+        padding: 15px;
+        background: #fff3cd;
+        border-radius: 10px;
+        font-size: 12px;
+        color: #856404;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🔬 Melanoma Detection</h1>
+      <p class="subtitle">Upload a skin lesion image for AI analysis</p>
+
+      <div class="upload-area" id="uploadArea">
+        <div class="upload-icon">📷</div>
+        <p class="upload-text">Drag & drop an image or <span>browse</span></p>
+      </div>
+
+      <input type="file" id="fileInput" accept="image/*" />
+      <img id="preview" alt="Preview" />
+
+      <button class="btn" id="predictBtn" disabled>Analyze Image</button>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Analyzing...</p>
+      </div>
+
+      <div class="result" id="result">
+        <p class="result-label">Prediction</p>
+        <p class="result-prediction" id="predictionText"></p>
+        <p class="result-confidence" id="confidenceText"></p>
+
+        <div class="probabilities">
+          <div class="prob-item">
+            <span>Benign</span>
+            <span id="benignProb">0%</span>
+          </div>
+          <div class="prob-bar">
+            <div
+              class="prob-fill benign"
+              id="benignBar"
+              style="width: 0%"
+            ></div>
+          </div>
+
+          <div class="prob-item">
+            <span>Malignant</span>
+            <span id="malignantProb">0%</span>
+          </div>
+          <div class="prob-bar">
+            <div
+              class="prob-fill malignant"
+              id="malignantBar"
+              style="width: 0%"
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="disclaimer">
+        ⚠️ This is a demo tool for educational purposes only. Always consult a
+        medical professional for diagnosis.
+      </div>
+    </div>
+
+    <script>
+      const uploadArea = document.getElementById("uploadArea");
+      const fileInput = document.getElementById("fileInput");
+      const preview = document.getElementById("preview");
+      const predictBtn = document.getElementById("predictBtn");
+      const loading = document.getElementById("loading");
+      const result = document.getElementById("result");
+
+      let selectedFile = null;
+
+      uploadArea.addEventListener("click", () => fileInput.click());
+
+      uploadArea.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        uploadArea.classList.add("dragover");
+      });
+
+      uploadArea.addEventListener("dragleave", () => {
+        uploadArea.classList.remove("dragover");
+      });
+
+      uploadArea.addEventListener("drop", (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove("dragover");
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          handleFile(files[0]);
+        }
+      });
+
+      fileInput.addEventListener("change", (e) => {
+        if (e.target.files.length > 0) {
+          handleFile(e.target.files[0]);
+        }
+      });
+
+      function handleFile(file) {
+        if (!file.type.startsWith("image/")) {
+          alert("Please select an image file");
+          return;
+        }
+
+        selectedFile = file;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          preview.src = e.target.result;
+          preview.style.display = "block";
+        };
+        reader.readAsDataURL(file);
+
+        predictBtn.disabled = false;
+        result.style.display = "none";
+      }
+
+      predictBtn.addEventListener("click", async () => {
+        if (!selectedFile) return;
+
+        predictBtn.disabled = true;
+        loading.style.display = "block";
+        result.style.display = "none";
+
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+
+        try {
+          const response = await fetch("/predict", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await response.json();
+
+          if (data.error) {
+            alert("Error: " + data.error);
+            return;
+          }
+
+          displayResult(data);
+        } catch (error) {
+          alert("Error: " + error.message);
+        } finally {
+          loading.style.display = "none";
+          predictBtn.disabled = false;
+        }
+      });
+
+      function displayResult(data) {
+        const predictionText = document.getElementById("predictionText");
+        const confidenceText = document.getElementById("confidenceText");
+        const benignProb = document.getElementById("benignProb");
+        const malignantProb = document.getElementById("malignantProb");
+        const benignBar = document.getElementById("benignBar");
+        const malignantBar = document.getElementById("malignantBar");
+
+        predictionText.textContent = data.prediction;
+        confidenceText.textContent = `Confidence: ${data.confidence}`;
+
+        benignProb.textContent = data.probabilities.benign;
+        malignantProb.textContent = data.probabilities.malignant;
+
+        const benignVal = parseFloat(data.probabilities.benign);
+        const malignantVal = parseFloat(data.probabilities.malignant);
+
+        benignBar.style.width = benignVal + "%";
+        malignantBar.style.width = malignantVal + "%";
+
+        result.className = "result " + data.prediction;
+        result.style.display = "block";
+      }
+    </script>
+  </body>
+</html>
